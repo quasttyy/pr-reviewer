@@ -1,0 +1,67 @@
+# go
+*.exe
+*.test
+*.out
+*.prof
+*.cov
+*.coverprofile
+
+# dependency directories
+vendor/
+
+# build artifacts
+bin/
+build/
+dist/
+tmp/
+coverage/
+testdata/
+
+# go tools
+.golangci.yml
+.golangci-lint.log
+.envrc
+.magefile
+.DS_Store
+
+# ide
+.idea/
+.vscode/
+*.iml
+
+# docker
+.docker/
+docker-compose.override.yml
+docker-compose.local.yml
+*.pid
+
+# logs
+*.log
+*.gz
+logs/
+log/
+coverage/
+profile.out
+
+# config
+.env
+.env.*
+*.local.yaml
+config.local.yaml
+
+# database/migrations
+migrations/
+db/migrate/tmp/
+*.db
+*.sql~
+
+# temporary data
+*.swp
+*.swo
+*.tmp
+*.bak
+
+# os-specific
+Thumbs.db
+.DS_Store
+Desktop.ini
