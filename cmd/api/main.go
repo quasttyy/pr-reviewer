@@ -1,8 +1,11 @@
 package main
 
 import (
-	"github.com/quasttyy/pr-reviewer/internal/utils"
+	"context"
+
 	"github.com/quasttyy/pr-reviewer/internal/config"
+	"github.com/quasttyy/pr-reviewer/internal/postgres"
+	"github.com/quasttyy/pr-reviewer/internal/utils"
 )
 
 func main() {
@@ -11,4 +14,14 @@ func main() {
 	
 	// Инициализируем логгер 
 	logger.Init(cfg.Env)
+
+	ctx := context.Background()
+
+	pool := postgres.InitPool(
+		ctx,
+		cfg.Database.DSN,
+		cfg.Database.MinConns,
+		cfg.Database.MaxConns,
+	)
+	defer pool.Close()
 }

@@ -1,35 +1,36 @@
-# Команды
+-- Команды
 CREATE TABLE IF NOT EXISTS teams (
-    id SERIAL PRIMARY KEY,
-    team_name VARCHAR(100) UNIQUE NOT NULL
+    team_name VARCHAR(100) PRIMARY KEY
 );
 
-# Пользователи
+-- Пользователи
 CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    user_name VARCHAR(100) NOT NULL,
+    user_id VARCHAR(100) PRIMARY KEY,
+    username VARCHAR(100) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    team_id INT NOT NULL REFERENCES teams(id)
+    team_name VARCHAR(100) NOT NULL REFERENCES teams(team_name) ON UPDATE CASCADE
 );
 
-# Пулл-реквесты
+-- Пулл-реквесты
 CREATE TABLE IF NOT EXISTS pull_requests (
-    id SERIAL PRIMARY KEY,
-    pr_name VARCHAR(100) NOT NULL,
-    author_id INT NOT NULL REFERENCES users(id),
-    pr_status VARCHAR(6) NOT NULL CHECK (pr_status IN ('OPEN', 'MERGED')),
-    need_more_reviewers BOOLEAN NOT NULL DEFAULT FALSE
+    pull_request_id VARCHAR(150) PRIMARY KEY,
+    pull_request_name VARCHAR(200) NOT NULL,
+    author_id VARCHAR(100) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE,
+    status VARCHAR(6) NOT NULL CHECK (status IN ('OPEN', 'MERGED')),
+    need_more_reviewers BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    merged_at TIMESTAMPTZ
 );
 
-# Ревьюеры (many to many)
+-- Связка PR и ревьюеров (many-to-many)
 CREATE TABLE IF NOT EXISTS pr_reviewers (
-    pr_id INT NOT NULL REFERENCES pull_requests(id),
-    reviewer_id INT NOT NULL REFERENCES users(id),
-    PRIMARY KEY(pr_id, reviewer_id)
+    pull_request_id VARCHAR(150) NOT NULL REFERENCES pull_requests(pull_request_id) ON DELETE CASCADE,
+    reviewer_id VARCHAR(100) NOT NULL REFERENCES users(user_id) ON UPDATE CASCADE,
+    PRIMARY KEY (pull_request_id, reviewer_id)
 );
 
-# Индексы
-CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
+-- Индексы
+CREATE INDEX IF NOT EXISTS idx_users_team_name ON users(team_name);
 CREATE INDEX IF NOT EXISTS idx_pr_author_id ON pull_requests(author_id);
-CREATE INDEX IF NOT EXISTS idx_pr_status ON pull_requests(pr_status);
-CREATE INDEX IF NOT EXISTS idx_pr_reviewers_pr ON pr_reviewers(pr_id);
+CREATE INDEX IF NOT EXISTS idx_pr_status ON pull_requests(status);
+CREATE INDEX IF NOT EXISTS idx_pr_reviewers_reviewer ON pr_reviewers(reviewer_id);

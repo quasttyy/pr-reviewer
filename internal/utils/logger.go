@@ -39,7 +39,7 @@ func Fatal(msg string, kv ...any) {
 	os.Exit(1)
 }
 
-// Logger возвращает базовый *slog.Logger (если нужен напрямую)
-func Logger() *slog.Logger {
+// Base возвращает базовый *slog.Logger (если нужен напрямую)
+func Base() *slog.Logger {
 	return log
 }
