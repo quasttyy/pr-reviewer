@@ -7,7 +7,7 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-// Config — структура конфигурации приложения.
+// Структура конфига
 type Config struct {
 	Env string `yaml:"env" env:"APP_ENV"`
 
@@ -28,8 +28,7 @@ type Config struct {
 	} `yaml:"security"`
 }
 
-// MustLoad читает YAML и ENV в одну структуру.
-// Если файла нет — программа завершится с ошибкой.
+// MustLoad читает YAML и ENV в одну структуру
 func MustLoad(path string) *Config {
 	var cfg Config
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
@@ -37,4 +36,4 @@ func MustLoad(path string) *Config {
 		os.Exit(1)
 	}
 	return &cfg
-}
+}k

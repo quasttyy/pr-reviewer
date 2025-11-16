@@ -27,8 +27,8 @@ func main() {
 	dsn := cfg.Database.DSN
 
 	logger.Info("running migrations...")
-	logger.Info("source url:", sourceURL)
-	logger.Info("dsn:", dsn)
+	logger.Info("migration source url", "value", sourceURL)
+	logger.Info("dsn", "value", dsn)
 
 	// 4. Создаём мигратор
 	m, err := migrate.New(sourceURL, dsn)

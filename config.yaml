@@ -5,7 +5,7 @@ server:
   port: 8080
 
 database:
-  dsn: ${DSN:-postgres://postgres:postgres@db:5432/pr_reviewer?sslmode=disable}
+  dsn: postgres://postgres:postgres@db:5432/pr_reviewer?sslmode=disable
   max_conns: 10
   min_conns: 2
 
