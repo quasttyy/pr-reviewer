@@ -36,6 +36,10 @@ func main() {
 	teamRepo := repo.NewTeamRepo(pool)
 	teamSvc := service.NewTeamService(teamRepo)
 	teamH := handlers.NewTeamHandlers(teamSvc)
+	userRepo := repo.NewUserRepo(pool)
+	prRepo := repo.NewPRRepo(pool)
+	userSvc := service.NewUserService(userRepo, prRepo)
+	userH := handlers.NewUserHandlers(userSvc)
 	auth := middleware.NewAuth(cfg)
 
 	mux := http.NewServeMux()
@@ -47,6 +51,9 @@ func main() {
 	mux.Handle("/team/add", http.HandlerFunc(teamH.AddTeam))
 	// /team/get под UserToken или AdminToken
 	mux.Handle("/team/get", auth.UserOrAdmin(http.HandlerFunc(teamH.GetTeam)))
+	// users
+	mux.Handle("/users/setIsActive", auth.AdminOnly(http.HandlerFunc(userH.SetIsActive)))
+	mux.Handle("/users/getReview", auth.UserOrAdmin(http.HandlerFunc(userH.GetReview)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{

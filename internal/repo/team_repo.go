@@ -55,13 +55,12 @@ func (r *TeamRepo) CreateTeamWithMembers(ctx context.Context, teamName string, m
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// create team, fail if exists
+	// Создаем команду
 	_, err = tx.Exec(ctx, sqlInsertTeam, teamName)
 	if err != nil {
 		return err
 	}
-
-	// update-then-insert для пользователей (создать/обновить без ON CONFLICT)
+	
 	for _, m := range members {
 		tag, errExec := tx.Exec(ctx, sqlUpdateUserByID, m.UserID, m.Username, m.IsActive, teamName)
 		if errExec != nil {

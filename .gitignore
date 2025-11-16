@@ -59,3 +59,7 @@ config.local.yaml
 Thumbs.db
 .DS_Store
 Desktop.ini
+
+# task
+Backend-trainee-assignment-autumn-2025.md
+openapi.yml

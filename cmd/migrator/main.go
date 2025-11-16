@@ -11,13 +11,13 @@ import (
 )
 
 func main() {
-	// 1. Загружаем конфиг
+	// Загружаем конфиг
 	cfg := config.MustLoad("config.yaml")
 
-	// 2. Инициализируем логгер
+	// Инициализируем логгер
 	logger.Init(cfg.Env)
 
-	// 3. Строим путь к миграциям
+	// Указываем путь к миграциям
 	migrationsPath, err := filepath.Abs("migrations")
 	if err != nil {
 		logger.Fatal("failed to create migrations path:", err)
@@ -30,18 +30,18 @@ func main() {
 	logger.Info("migration source url", "value", sourceURL)
 	logger.Info("dsn", "value", dsn)
 
-	// 4. Создаём мигратор
+	// Создаём мигратор
 	m, err := migrate.New(sourceURL, dsn)
 	if err != nil {
 		logger.Fatal("failed to create migrator:", err)
 	}
 
-	// 5. Закрываем его после завершения
+	// Закрываем его после завершения
 	defer func() {
 		_, _ = m.Close()
 	}()
 
-	// 6. Применяем миграции
+	// Применяем миграции
 	err = m.Up()
 	if err != nil {
 		if err == migrate.ErrNoChange {

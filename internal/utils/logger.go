@@ -28,7 +28,6 @@ func Init(env string) {
 }
 
 // Алиасы 
-
 func Info(msg string, kv ...any)  { log.Info(msg, kv...) }
 func Warn(msg string, kv ...any)  { log.Warn(msg, kv...) }
 func Error(msg string, kv ...any) { log.Error(msg, kv...) }
@@ -39,7 +38,7 @@ func Fatal(msg string, kv ...any) {
 	os.Exit(1)
 }
 
-// Base возвращает базовый *slog.Logger (если нужен напрямую)
+// Base возвращает базовый *slog.Logger
 func Base() *slog.Logger {
 	return log
 }
