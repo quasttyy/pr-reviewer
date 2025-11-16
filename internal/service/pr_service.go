@@ -20,10 +20,19 @@ var (
 )
 
 type PRService struct {
-	prs *repo.PRRepo
+	prs PRStore
 }
 
-func NewPRService(prs *repo.PRRepo) *PRService {
+type PRStore interface {
+	GetUserTeam(ctx context.Context, userID string) (string, error)
+	GetActiveCandidatesFromTeamExcluding(ctx context.Context, teamName, excludeUserID string) ([]string, error)
+	CreatePROpenWithAssigned(ctx context.Context, id, name, author string, needMore bool, reviewers []string) error
+	GetPR(ctx context.Context, id string) (repo.PRFull, error)
+	MarkMerged(ctx context.Context, id string) error
+	ReplaceReviewer(ctx context.Context, prID, oldReviewer, newReviewer string) error
+}
+
+func NewPRService(prs PRStore) *PRService {
 	return &PRService{prs: prs}
 }
 
@@ -44,13 +53,12 @@ func (s *PRService) Create(ctx context.Context, prID, prName, authorID string) (
 	reviewers := chooseUpToTwoRandom(candidates)
 	needMore := len(reviewers) < 2
 	if err := s.prs.CreatePROpenWithAssigned(ctx, prID, prName, authorID, needMore, reviewers); err != nil {
-		// конфликт PK → PR_EXISTS
 		return repo.PRFull{}, ErrPRExists
 	}
 	return s.prs.GetPR(ctx, prID)
 }
 
-// Merge — идемпотентно помечает PR как MERGED. Повторные вызовы — ок.
+// Merge идемпотентно помечает PR как MERGED
 func (s *PRService) Merge(ctx context.Context, prID string) (repo.PRFull, error) {
 	pr, err := s.prs.GetPR(ctx, prID)
 	if err != nil {
@@ -68,7 +76,7 @@ func (s *PRService) Merge(ctx context.Context, prID string) (repo.PRFull, error)
 	return s.prs.GetPR(ctx, prID)
 }
 
-// Reassign — заменить одного ревьювера на случайного активного из его команды
+// Reassign заменяет одного ревьювера на случайного активного из его команды
 func (s *PRService) Reassign(ctx context.Context, prID, oldReviewerID string) (repo.PRFull, string, error) {
 	pr, err := s.prs.GetPR(ctx, prID)
 	if err != nil {
@@ -80,7 +88,7 @@ func (s *PRService) Reassign(ctx context.Context, prID, oldReviewerID string) (r
 	if pr.Status == "MERGED" {
 		return repo.PRFull{}, "", ErrPRMerged
 	}
-	// убедимся, что oldReviewer назначен
+	// Убедимся, что oldReviewer назначен
 	found := false
 	for _, r := range pr.Assigned {
 		if r == oldReviewerID {
@@ -91,7 +99,7 @@ func (s *PRService) Reassign(ctx context.Context, prID, oldReviewerID string) (r
 	if !found {
 		return repo.PRFull{}, "", ErrNotAssigned
 	}
-	// кандидаты из команды oldReviewer
+	// Кандидаты из команды oldReviewer
 	team, err := s.prs.GetUserTeam(ctx, oldReviewerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -103,7 +111,7 @@ func (s *PRService) Reassign(ctx context.Context, prID, oldReviewerID string) (r
 	if err != nil {
 		return repo.PRFull{}, "", err
 	}
-	// убираем тех, кто уже назначен
+	// Убираем тех, кто уже назначен
 	exclude := map[string]struct{}{}
 	for _, r := range pr.Assigned {
 		exclude[r] = struct{}{}
@@ -136,7 +144,7 @@ func chooseUpToTwoRandom(ids []string) []string {
 	if len(ids) <= 2 {
 		return append([]string(nil), ids...)
 	}
-	// простая выборка двух случайных неповторяющихся
+	// Выбираем два случайных неповторяющихся
 	i := rand.Intn(len(ids))
 	j := rand.Intn(len(ids)-1)
 	if j >= i {

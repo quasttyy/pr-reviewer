@@ -23,7 +23,7 @@ func (h *UserHandlers) SetIsActive(w http.ResponseWriter, r *http.Request) {
 		IsActive bool   `json:"is_active"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserID == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "user_id and is_active are required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "user_id and is_active are required")
 		return
 	}
 	row, err := h.svc.SetIsActiveAdmin(r.Context(), req.UserID, req.IsActive)
@@ -54,7 +54,7 @@ func (h *UserHandlers) SetIsActive(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandlers) GetReview(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "user_id is required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "user_id is required")
 		return
 	}
 	rows, err := h.svc.GetUserReviews(r.Context(), userID)

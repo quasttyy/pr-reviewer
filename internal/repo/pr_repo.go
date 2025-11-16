@@ -108,7 +108,7 @@ type PRFull struct {
 	MergedAt          *time.Time
 }
 
-// CreatePROpenWithAssigned создаёт PR и назначает переданных ревьюеров (0..2).
+// CreatePROpenWithAssigned создаёт PR и назначает переданных ревьюеров
 func (r *PRRepo) CreatePROpenWithAssigned(ctx context.Context, id, name, author string, needMore bool, reviewers []string) error {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
