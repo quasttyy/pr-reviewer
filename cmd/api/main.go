@@ -32,7 +32,6 @@ func main() {
 	)
 	defer pool.Close()
 
-	// wiring
 	teamRepo := repo.NewTeamRepo(pool)
 	teamSvc := service.NewTeamService(teamRepo)
 	teamH := handlers.NewTeamHandlers(teamSvc)
@@ -40,6 +39,8 @@ func main() {
 	prRepo := repo.NewPRRepo(pool)
 	userSvc := service.NewUserService(userRepo, prRepo)
 	userH := handlers.NewUserHandlers(userSvc)
+	prSvc := service.NewPRService(prRepo)
+	prH := handlers.NewPRHandlers(prSvc)
 	auth := middleware.NewAuth(cfg)
 
 	mux := http.NewServeMux()
@@ -54,6 +55,10 @@ func main() {
 	// users
 	mux.Handle("/users/setIsActive", auth.AdminOnly(http.HandlerFunc(userH.SetIsActive)))
 	mux.Handle("/users/getReview", auth.UserOrAdmin(http.HandlerFunc(userH.GetReview)))
+	// pr (Admin по спекам)
+	mux.Handle("/pullRequest/create", auth.AdminOnly(http.HandlerFunc(prH.Create)))
+	mux.Handle("/pullRequest/merge", auth.AdminOnly(http.HandlerFunc(prH.Merge)))
+	mux.Handle("/pullRequest/reassign", auth.AdminOnly(http.HandlerFunc(prH.Reassign)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
