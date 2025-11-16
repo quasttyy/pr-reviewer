@@ -49,12 +49,6 @@ profile.out
 *.local.yaml
 config.local.yaml
 
-# database/migrations
-migrations/
-db/migrate/tmp/
-*.db
-*.sql~
-
 # temporary data
 *.swp
 *.swo

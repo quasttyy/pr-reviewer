@@ -1,0 +1,14 @@
+env: "dev" # dev/prod
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+database:
+  dsn: postgres://postgres:postgres@db:5432/pr_reviewer?sslmode=disable
+  max_conns: 10
+  min_conns: 2
+
+security:
+  admin_token: "adm43842894"
+  user_token: "usr48234234"
