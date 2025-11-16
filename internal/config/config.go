@@ -36,4 +36,4 @@ func MustLoad(path string) *Config {
 		os.Exit(1)
 	}
 	return &cfg
-}k
+}

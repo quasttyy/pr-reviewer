@@ -7,7 +7,11 @@ import (
 	"time"
 
 	"github.com/quasttyy/pr-reviewer/internal/config"
+	"github.com/quasttyy/pr-reviewer/internal/handlers"
+	"github.com/quasttyy/pr-reviewer/internal/middleware"
 	"github.com/quasttyy/pr-reviewer/internal/postgres"
+	"github.com/quasttyy/pr-reviewer/internal/repo"
+	"github.com/quasttyy/pr-reviewer/internal/service"
 	logger "github.com/quasttyy/pr-reviewer/internal/utils"
 )
 
@@ -28,13 +32,21 @@ func main() {
 	)
 	defer pool.Close()
 
-	_ = pool // будет использоваться далее в репозиториях
+	// wiring
+	teamRepo := repo.NewTeamRepo(pool)
+	teamSvc := service.NewTeamService(teamRepo)
+	teamH := handlers.NewTeamHandlers(teamSvc)
+	auth := middleware.NewAuth(cfg)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	})
+	// OpenAPI: /team/add без секьюрити
+	mux.Handle("/team/add", http.HandlerFunc(teamH.AddTeam))
+	// /team/get под UserToken или AdminToken
+	mux.Handle("/team/get", auth.UserOrAdmin(http.HandlerFunc(teamH.GetTeam)))
 
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	srv := &http.Server{
