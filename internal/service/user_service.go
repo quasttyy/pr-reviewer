@@ -11,12 +11,23 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 )
 
-type UserService struct {
-	users *repo.UserRepo
-	prs   *repo.PRRepo
+// UserStore описывает операции над пользователями, необходимые сервису
+type UserStore interface {
+	UpdateIsActive(ctx context.Context, userID string, isActive bool) (repo.UserRow, error)
+	GetByID(ctx context.Context, userID string) (repo.UserRow, error)
 }
 
-func NewUserService(users *repo.UserRepo, prs *repo.PRRepo) *UserService {
+// PRShortStore описывает операции получения краткой информации о PR пользователя
+type PRShortStore interface {
+	GetShortByReviewer(ctx context.Context, userID string) ([]repo.PRShortRow, error)
+}
+
+type UserService struct {
+	users UserStore
+	prs   PRShortStore
+}
+
+func NewUserService(users UserStore, prs PRShortStore) *UserService {
 	return &UserService{users: users, prs: prs}
 }
 

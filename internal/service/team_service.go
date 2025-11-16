@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-
 	"github.com/quasttyy/pr-reviewer/internal/domain"
 	"github.com/quasttyy/pr-reviewer/internal/repo"
 )
@@ -13,11 +12,22 @@ var (
 	ErrNotFound   = errors.New("not found")
 )
 
-type TeamService struct {
-	teams *repo.TeamRepo
+// TeamStore описывает минимальный интерфейс хранилища, необходимый сервису команд
+type TeamStore interface {
+	TeamExists(ctx context.Context, teamName string) (bool, error)
+	CreateTeamWithMembers(ctx context.Context, teamName string, members []struct {
+		UserID   string
+		Username string
+		IsActive bool
+	}) error
+	GetTeamWithMembers(ctx context.Context, teamName string) ([]repo.TeamMemberRow, error)
 }
 
-func NewTeamService(teams *repo.TeamRepo) *TeamService {
+type TeamService struct {
+	teams TeamStore
+}
+
+func NewTeamService(teams TeamStore) *TeamService {
 	return &TeamService{teams: teams}
 }
 

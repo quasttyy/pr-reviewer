@@ -1,6 +1,6 @@
 # Сервис назначения ревьюеров для Pull Request’ов 
 
-Сервис для автоматического назначения ревьюеров на Pull Request'ы, управления командами и пользователями. Реализован в качестве тестового задания для стажировки Backend в Avito (осень 2025).
+Сервис для автоматического назначения ревьюеров на Pull Request'ы, управления командами и пользователями. Реализован в качестве тестового задания для стажировки по направлению Backend в Avito (осень 2025).
 
 ## Функционал
 
@@ -21,13 +21,13 @@
 
 ## Стек
 - Язык: Go 1.25
-- База данных: PostgreSQL 17 (Docker image)
+- База данных: PostgreSQL 17 
 - API и роутинг: `chi` v5
 - Работа с БД: `pgx/v5` (`pgxpool`), миграции — `golang-migrate`
 - Контейнеризация: Docker, Docker Compose
-- Тестирование: стандартная библиотека (`go test`) — unit‑тесты бизнес‑логики PR
-- Конфигурация: `cleanenv` (YAML + ENV)
-- Логирование: `log/slog` (text в dev, json в prod)
+- Тестирование: стандартная библиотека (`go test`) 
+- Конфигурация: `cleanenv`
+- Логирование: `log/slog` 
 - Сборка/запуск: `Makefile`, `docker compose`
 
 ## Запуск проекта
@@ -35,7 +35,6 @@
 ### Требования
 
 - Docker и Docker Compose
-- Go 1.25+ (только для локального запуска)
 
 ### Инструкция по запуску
 
@@ -51,7 +50,7 @@
 2. **Запустите сервисы:**
 
    ```bash
-   docker compose up --build
+   make compose-up
    ```
 
 3. **Проверьте работоспособность:**
@@ -67,13 +66,22 @@
 Для остановки Docker-контейнеров:
 
 ```bash
-docker compose down
+make compose-down
 ```
 
 Для полной очистки (включая volumes с данными):
 
 ```bash
-docker compose down -v
+make compose-down-v
+```
+
+## Сборка и тесты
+```bash
+make build      # собрать бинарники
+make migrate    # прогнать миграции локально
+make run        # запустить API локально
+make test       # юнит-тесты
+make compose-up # развернуть докер-контейнеры
 ```
 
 ## Архитектура
@@ -83,7 +91,7 @@ docker compose down -v
 - `internal/repo/` — доступ к данным (PostgreSQL, SQL‑запросы)
 - `internal/service/` — бизнес‑правила (назначение, merge, reassign)
 - `internal/handlers/` — HTTP‑хендлеры
-- `internal/postgres/` — инициализация пула соединений
+- `internal/postgres/` — подключение к PostgreSQL (пул соединений)
 - `internal/utils/` — логирование
 
 ## Сущности и правила
@@ -96,61 +104,8 @@ docker compose down -v
 - Если доступных кандидатов меньше двух, назначается доступное количество (0/1), `need_more_reviewers=true`
 - Идемпотентный `merge`: повторный вызов возвращает текущее состояние PR
 
-## Эндпоинты (без авторизации)
+## Эндпоинты
 
-Team — создать команду с участниками (создаёт/обновляет пользователей):
-```bash
-curl -i -X POST http://localhost:8080/team/add \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "team_name":"backend",
-    "members":[
-      {"user_id":"u1","username":"Zakhar","is_active":true},
-      {"user_id":"u2","username":"Konstantin","is_active":true},
-      {"user_id":"u3","username":"Dmitriy","is_active":true}
-    ]
-  }'
-```
-
-Team — получить команду:
-```bash
-curl -i 'http://localhost:8080/team/get?team_name=backend'
-```
-
-Users — установить активность пользователя:
-```bash
-curl -i -X POST http://localhost:8080/users/setIsActive \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"u2","is_active":false}'
-```
-
-PR — создать PR (автоназначение ревьюверов):
-```bash
-curl -i -X POST http://localhost:8080/pullRequest/create \
-  -H "Content-Type: application/json" \
-  -d '{"pull_request_id":"pr-1001","pull_request_name":"Add search","author_id":"u1"}'
-```
-
-PR — идемпотентный merge:
-```bash
-curl -i -X POST http://localhost:8080/pullRequest/merge \
-  -H "Content-Type: application/json" \
-  -d '{"pull_request_id":"pr-1001"}'
-```
-
-PR — переназначить ревьювера:
-```bash
-curl -i -X POST http://localhost:8080/pullRequest/reassign \
-  -H "Content-Type: application/json" \
-  -d '{"pull_request_id":"pr-1001","old_user_id":"u2"}'
-```
-
-Users — получить PR’ы, где пользователь ревьювер:
-```bash
-curl -i 'http://localhost:8080/users/getReview?user_id=u2'
-```
-
-## Основные эндпоинты
 - `POST /team/add` — создать команду с участниками
 - `GET /team/get` — получить команду и её участников
 - `POST /users/setIsActive` — изменить `is_active` пользователя
@@ -158,16 +113,47 @@ curl -i 'http://localhost:8080/users/getReview?user_id=u2'
 - `POST /pullRequest/create` — создать PR с автоназначением ревьюверов
 - `POST /pullRequest/merge` — пометить PR как MERGED (идемпотентно)
 - `POST /pullRequest/reassign` — переназначить ревьювера
+- `GET /pullRequest/stats` — статистика назначений ревьюверов (количество PR на каждого ревьювера)
 
-## Сборка и тесты
+### Примеры использования
+
 ```bash
-make build      # собрать бинарники
-make migrate    # прогнать миграции локально
-make run        # запустить API локально
-make test       # юнит-тесты
-make compose-up # docker compose up --build
+# Создать команду
+curl -i -X POST http://localhost:8080/team/add -H 'Content-Type: application/json' \
+  -d '{"team_name":"backend","members":[{"user_id":"u1","username":"Zakhar","is_active":true},{"user_id":"u2","username":"Daniil","is_active":true},{"user_id":"u3","username":"Konstantin","is_active":true},{"user_id":"u4","username":"Nikita","is_active":true},{"user_id":"u5","username":"Kirill","is_active":true}]}'
+
+# Получить команду
+curl -i 'http://localhost:8080/team/get?team_name=backend'
+
+# Изменить активность пользователя
+curl -i -X POST http://localhost:8080/users/setIsActive -H 'Content-Type: application/json' \
+  -d '{"user_id":"u1","is_active":false}'
+
+# Создать PR
+curl -i -X POST http://localhost:8080/pullRequest/create -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001","pull_request_name":"Add search","author_id":"u1"}'
+
+# Merge PR
+curl -i -X POST http://localhost:8080/pullRequest/merge -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001"}'
+
+# Переназначить ревьювера
+curl -i -X POST http://localhost:8080/pullRequest/reassign -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001","old_user_id":"u2"}'
+
+# Получить PR ревьювера
+curl -i 'http://localhost:8080/users/getReview?user_id=u2'
+
+# Статистика назначений
+curl -i 'http://localhost:8080/pullRequest/stats'
 ```
 
-## Принятые решения и допущения
-- Возвращаем `need_more_reviewers` в ответах PR (в OpenAPI поле не описано, но в ТЗ оно фигурирует).
-- Автор PR исключается при автоприсвоении ревьюверов; при переназначении кандидат выбирается из команды заменяемого.
+## Тестирование
+
+Юнит-тесты находятся в `internal/service/` и используют in-memory fake‑реализации репозиториев для изоляции от БД. Покрывают основные сценарии работы, обработку ошибок и граничные случаи для всех сервисов (`PRService`, `TeamService`, `UserService`).
+
+## Дополнительные задания
+
+Выполненные дополнительные задания:
+- **Эндпоинт статистики** — `GET /pullRequest/stats` для отслеживания нагрузки на ревьюверов
+- **Юнит-тестирование** — покрытие всех сервисов тестами с изоляцией от БД

@@ -30,6 +30,7 @@ type PRStore interface {
 	GetPR(ctx context.Context, id string) (repo.PRFull, error)
 	MarkMerged(ctx context.Context, id string) error
 	ReplaceReviewer(ctx context.Context, prID, oldReviewer, newReviewer string) error
+	GetReviewerStats(ctx context.Context) ([]repo.ReviewerStatRow, error)
 }
 
 func NewPRService(prs PRStore) *PRService {
@@ -154,4 +155,9 @@ func chooseUpToTwoRandom(ids []string) []string {
 		i, j = j, i
 	}
 	return []string{ids[i], ids[j]}
+}
+
+// GetReviewerStats проксирует статистику назначений ревьюверов из репозитория.
+func (s *PRService) GetReviewerStats(ctx context.Context) ([]repo.ReviewerStatRow, error) {
+	return s.prs.GetReviewerStats(ctx)
 }

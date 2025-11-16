@@ -63,6 +63,12 @@ const (
 		FROM users
 		WHERE user_id = $1
 	`
+	sqlSelectReviewerStats = `
+		SELECT r.reviewer_id, COUNT(*) AS total_assigned
+		FROM pr_reviewers r
+		GROUP BY r.reviewer_id
+		ORDER BY r.reviewer_id
+	`
 )
 
 type PRShortRow struct {
@@ -198,4 +204,29 @@ func (r *PRRepo) ReplaceReviewer(ctx context.Context, prID, oldReviewer, newRevi
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+// ReviewerStatRow описывает простую статистику назначений ревьюеров.
+type ReviewerStatRow struct {
+	ReviewerID    string
+	TotalAssigned int64
+}
+
+// GetReviewerStats возвращает статистику назначений по ревьюверам.
+func (r *PRRepo) GetReviewerStats(ctx context.Context) ([]ReviewerStatRow, error) {
+	rows, err := r.pool.Query(ctx, sqlSelectReviewerStats)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stats []ReviewerStatRow
+	for rows.Next() {
+		var s ReviewerStatRow
+		if err := rows.Scan(&s.ReviewerID, &s.TotalAssigned); err != nil {
+			return nil, err
+		}
+		stats = append(stats, s)
+	}
+	return stats, rows.Err()
 }

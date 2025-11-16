@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/quasttyy/pr-reviewer/internal/service"
 )
@@ -166,5 +167,29 @@ func (h *PRHandlers) Reassign(w http.ResponseWriter, r *http.Request) {
 		NeedMoreReviewers: pr.NeedMoreReviewers,
 	}
 	resp.ReplacedBy = replacedBy
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// GET /pullRequest/stats
+// Простая статистика: сколько PR назначено на каждого ревьювера.
+func (h *PRHandlers) GetReviewerAssignments(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.svc.GetReviewerStats(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL", "internal error")
+		return
+	}
+	type statDTO struct {
+		ReviewerID    string `json:"reviewer_id"`
+		TotalAssigned int64  `json:"total_assigned"`
+	}
+	resp := struct {
+		Items []statDTO `json:"items"`
+	}{}
+	for _, s := range stats {
+		resp.Items = append(resp.Items, statDTO{
+			ReviewerID:    s.ReviewerID,
+			TotalAssigned: s.TotalAssigned,
+		})
+	}
 	writeJSON(w, http.StatusOK, resp)
 }

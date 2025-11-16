@@ -71,6 +71,7 @@ func main() {
 		rp.Post("/create", prH.Create)
 		rp.Post("/merge", prH.Merge)
 		rp.Post("/reassign", prH.Reassign)
+		rp.Get("/stats", prH.GetReviewerAssignments)
 	})
 
 	// Указываем адрес и порт

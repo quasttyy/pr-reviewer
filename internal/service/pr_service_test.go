@@ -121,6 +121,24 @@ func (f *fakePRRepo) ReplaceReviewer(ctx context.Context, prID, oldReviewer, new
 	return nil
 }
 
+// GetReviewerStats реализует StatsStore для тестов, просто считает количество назначений по in-memory структурам.
+func (f *fakePRRepo) GetReviewerStats(ctx context.Context) ([]repo.ReviewerStatRow, error) {
+	counts := make(map[string]int64)
+	for _, reviewers := range f.prReviewers {
+		for id := range reviewers {
+			counts[id]++
+		}
+	}
+	var out []repo.ReviewerStatRow
+	for id, c := range counts {
+		out = append(out, repo.ReviewerStatRow{
+			ReviewerID:    id,
+			TotalAssigned: c,
+		})
+	}
+	return out, nil
+}
+
 func TestCreate_AssignsUpToTwo(t *testing.T) {
 	r := newFakePRRepo()
 	// команда backend: u1 (author), u2, u3 активны
