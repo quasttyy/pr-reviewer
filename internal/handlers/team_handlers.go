@@ -28,17 +28,17 @@ func (h *TeamHandlers) AddTeam(w http.ResponseWriter, r *http.Request) {
 		Members  []memberDTO `json:"members"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_JSON", "invalid json")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "invalid json")
 		return
 	}
 	if req.TeamName == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "team_name is required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "team_name is required")
 		return
 	}
 	members := make([]domain.TeamMember, 0, len(req.Members))
 	for _, m := range req.Members {
 		if m.UserID == "" || m.Username == "" {
-			writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "member.user_id and username are required")
+			writeError(w, http.StatusBadRequest, "NOT_FOUND", "member.user_id and username are required")
 			return
 		}
 		members = append(members, domain.TeamMember{
@@ -86,7 +86,7 @@ func (h *TeamHandlers) AddTeam(w http.ResponseWriter, r *http.Request) {
 func (h *TeamHandlers) GetTeam(w http.ResponseWriter, r *http.Request) {
 	teamName := r.URL.Query().Get("team_name")
 	if teamName == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "team_name is required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "team_name is required")
 		return
 	}
 	team, err := h.svc.GetTeam(r.Context(), teamName)

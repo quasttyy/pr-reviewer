@@ -1,8 +1,9 @@
 module github.com/quasttyy/pr-reviewer
 
-go 1.23.0
+go 1.25.0
 
 require (
+	github.com/go-chi/chi/v5 v5.1.0
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/golang-migrate/migrate/v4 v4.19.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect

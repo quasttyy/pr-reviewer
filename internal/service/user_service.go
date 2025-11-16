@@ -23,7 +23,7 @@ func NewUserService(users *repo.UserRepo, prs *repo.PRRepo) *UserService {
 func (s *UserService) SetIsActiveAdmin(ctx context.Context, userID string, isActive bool) (repo.UserRow, error) {
 	row, err := s.users.UpdateIsActive(ctx, userID, isActive)
 	if err != nil {
-		// Если пользователя нет — вернём корректную 404 наверху
+		// Если пользователя нет, то вернём корректную 404 наверху
 		return repo.UserRow{}, err
 	}
 	return row, nil

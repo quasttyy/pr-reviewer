@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-
+	"time"
 	"github.com/jackc/pgx/v5"
 	"github.com/quasttyy/pr-reviewer/internal/service"
 )
@@ -24,7 +24,7 @@ func (h *PRHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Auth string `json:"author_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ID == "" || req.Name == "" || req.Auth == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "invalid request")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "invalid request")
 		return
 	}
 	pr, err := h.svc.Create(r.Context(), req.ID, req.Name, req.Auth)
@@ -49,6 +49,7 @@ func (h *PRHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Reviewers []string `json:"assigned_reviewers"`
 		CreatedAt *time.Time `json:"createdAt,omitempty"`
 		MergedAt  *time.Time `json:"mergedAt,omitempty"`
+		NeedMoreReviewers bool `json:"need_more_reviewers"`
 	}
 	resp := struct {
 		PR respPR `json:"pr"`
@@ -61,6 +62,7 @@ func (h *PRHandlers) Create(w http.ResponseWriter, r *http.Request) {
 		Reviewers: pr.Assigned,
 		CreatedAt: pr.CreatedAt,
 		MergedAt:  pr.MergedAt,
+		NeedMoreReviewers: pr.NeedMoreReviewers,
 	}
 	writeJSON(w, http.StatusCreated, resp)
 }
@@ -71,7 +73,7 @@ func (h *PRHandlers) Merge(w http.ResponseWriter, r *http.Request) {
 		ID string `json:"pull_request_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ID == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "pull_request_id is required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "pull_request_id is required")
 		return
 	}
 	pr, err := h.svc.Merge(r.Context(), req.ID)
@@ -91,6 +93,7 @@ func (h *PRHandlers) Merge(w http.ResponseWriter, r *http.Request) {
 		Reviewers []string `json:"assigned_reviewers"`
 		CreatedAt *time.Time `json:"createdAt,omitempty"`
 		MergedAt  *time.Time `json:"mergedAt,omitempty"`
+		NeedMoreReviewers bool `json:"need_more_reviewers"`
 	}
 	resp := struct {
 		PR respPR `json:"pr"`
@@ -103,6 +106,7 @@ func (h *PRHandlers) Merge(w http.ResponseWriter, r *http.Request) {
 		Reviewers: pr.Assigned,
 		CreatedAt: pr.CreatedAt,
 		MergedAt:  pr.MergedAt,
+		NeedMoreReviewers: pr.NeedMoreReviewers,
 	}
 	writeJSON(w, http.StatusOK, resp)
 }
@@ -114,7 +118,7 @@ func (h *PRHandlers) Reassign(w http.ResponseWriter, r *http.Request) {
 		Old string `json:"old_user_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.ID == "" || req.Old == "" {
-		writeError(w, http.StatusBadRequest, "INVALID_REQUEST", "pull_request_id and old_user_id are required")
+		writeError(w, http.StatusBadRequest, "NOT_FOUND", "pull_request_id and old_user_id are required")
 		return
 	}
 	pr, replacedBy, err := h.svc.Reassign(r.Context(), req.ID, req.Old)
@@ -143,6 +147,9 @@ func (h *PRHandlers) Reassign(w http.ResponseWriter, r *http.Request) {
 		AuthorID string   `json:"author_id"`
 		Status   string   `json:"status"`
 		Reviewers []string `json:"assigned_reviewers"`
+		CreatedAt *time.Time `json:"createdAt,omitempty"`
+		MergedAt  *time.Time `json:"mergedAt,omitempty"`
+		NeedMoreReviewers bool `json:"need_more_reviewers"`
 	}
 	resp := struct {
 		PR         respPR `json:"pr"`
@@ -154,6 +161,9 @@ func (h *PRHandlers) Reassign(w http.ResponseWriter, r *http.Request) {
 		AuthorID: pr.AuthorID,
 		Status:   pr.Status,
 		Reviewers: pr.Assigned,
+		CreatedAt: pr.CreatedAt,
+		MergedAt:  pr.MergedAt,
+		NeedMoreReviewers: pr.NeedMoreReviewers,
 	}
 	resp.ReplacedBy = replacedBy
 	writeJSON(w, http.StatusOK, resp)

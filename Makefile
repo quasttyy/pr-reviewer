@@ -3,21 +3,21 @@ SHELL := /bin/sh
 .PHONY: build run migrate test compose-up compose-down
 
 build:
-\tGOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
-\tGOOS=linux GOARCH=amd64 go build -o bin/migrator ./cmd/migrator
+	GOOS=linux GOARCH=amd64 go build -o bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -o bin/migrator ./cmd/migrator
 
 run:
-\tgo run ./cmd/api
+	go run ./cmd/api
 
 migrate:
-\tgo run ./cmd/migrator
+	go run ./cmd/migrator
 
 test:
-\tgo test ./...
+	go test ./...
 
 compose-up:
-\tdocker compose up --build
+	docker compose up --build
 
 compose-down:
-\tdocker compose down -v
+	docker compose down -v
 
