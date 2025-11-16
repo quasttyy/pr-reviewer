@@ -18,25 +18,25 @@ func NewAuth(cfg *config.Config) *Auth {
 	}
 }
 
-// UserOrAdmin позволяет доступ при валидном пользовательском или админском токене.
+// UserOrAdmin разрешает доступ при валидном токене (пользователя или администратора)
 func (a *Auth) UserOrAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if a.check(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		w.WriteHeader(http.StatusUnauthorized)
+		writeUnauthorized(w)
 	})
 }
 
-// AdminOnly позволяет доступ только при валидном админском токене.
+// AdminOnly разрешает доступ при валидном токене (только админинистратора)
 func (a *Auth) AdminOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token := bearer(r); token == a.admin && token != "" {
 			next.ServeHTTP(w, r)
 			return
 		}
-		w.WriteHeader(http.StatusUnauthorized)
+		writeUnauthorized(w)
 	})
 }
 
@@ -55,4 +55,10 @@ func bearer(r *http.Request) string {
 		return h[len(p):]
 	}
 	return ""
+}
+
+func writeUnauthorized(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_, _ = w.Write([]byte(`{"error":{"code":"NOT_FOUND","message":"unauthorized"}}`))
 }
