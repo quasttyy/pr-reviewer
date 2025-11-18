@@ -19,17 +19,6 @@
   - Автоматическое применение миграций при `docker compose up`.
   - Makefile с основными командами.
 
-## Стек
-- Язык: Go 1.25
-- База данных: PostgreSQL 17 
-- API и роутинг: `chi` v5
-- Работа с БД: `pgx/v5` (`pgxpool`), миграции — `golang-migrate`
-- Контейнеризация: Docker, Docker Compose
-- Тестирование: стандартная библиотека (`go test`) 
-- Конфигурация: `cleanenv`
-- Логирование: `log/slog` 
-- Сборка/запуск: `Makefile`, `docker compose`
-
 ## Запуск проекта
 
 ### Требования
@@ -75,6 +64,17 @@ make compose-down
 make compose-down-v
 ```
 
+### Переменные окружения
+
+Конфигурация загружается из `config.yaml` и может быть переопределена через переменные окружения:
+
+- `APP_ENV` — окружение (`dev`/`prod`, по умолчанию: `dev`)
+- `SERVER_HOST` — хост сервера (по умолчанию: `0.0.0.0`)
+- `SERVER_PORT` — порт сервера (по умолчанию: `8080`)
+- `DSN` — строка подключения к PostgreSQL (по умолчанию: `postgres://postgres:postgres@db:5432/pr_reviewer?sslmode=disable`)
+- `DB_MAX_CONNS` — максимальное количество соединений с БД (по умолчанию: `10`)
+- `DB_MIN_CONNS` — минимальное количество соединений с БД (по умолчанию: `2`)
+
 ## Сборка и тесты
 ```bash
 make build      # собрать бинарники
@@ -83,6 +83,61 @@ make run        # запустить API локально
 make test       # юнит-тесты
 make compose-up # развернуть докер-контейнеры
 ```
+
+## Эндпоинты
+
+- `POST /team/add` — создать команду с участниками
+- `GET /team/get` — получить команду и её участников
+- `POST /users/setIsActive` — изменить `is_active` пользователя
+- `GET /users/getReview` — получить PR, где пользователь ревьювер
+- `POST /pullRequest/create` — создать PR с автоназначением ревьюверов
+- `POST /pullRequest/merge` — пометить PR как MERGED (идемпотентно)
+- `POST /pullRequest/reassign` — переназначить ревьювера
+- `GET /pullRequest/stats` — статистика назначений ревьюверов (количество PR на каждого ревьювера)
+
+### Пример использования
+
+```bash
+# Создать команду
+curl -i -X POST http://localhost:8080/team/add -H 'Content-Type: application/json' \
+  -d '{"team_name":"backend","members":[{"user_id":"u1","username":"Zakhar","is_active":true},{"user_id":"u2","username":"Daniil","is_active":true},{"user_id":"u3","username":"Konstantin","is_active":true},{"user_id":"u4","username":"Nikita","is_active":true},{"user_id":"u5","username":"Kirill","is_active":true}]}'
+
+# Получить команду
+curl -i 'http://localhost:8080/team/get?team_name=backend'
+
+# Изменить активность пользователя
+curl -i -X POST http://localhost:8080/users/setIsActive -H 'Content-Type: application/json' \
+  -d '{"user_id":"u1","is_active":false}'
+
+# Создать PR
+curl -i -X POST http://localhost:8080/pullRequest/create -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001","pull_request_name":"add migrations","author_id":"u1"}'
+
+# Переназначить ревьювера
+curl -i -X POST http://localhost:8080/pullRequest/reassign -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001","old_user_id":"u2"}'
+
+# Merge PR
+curl -i -X POST http://localhost:8080/pullRequest/merge -H 'Content-Type: application/json' \
+  -d '{"pull_request_id":"pr-1001"}'
+
+# Получить PR ревьювера
+curl -i 'http://localhost:8080/users/getReview?user_id=u2'
+
+# Статистика назначений
+curl -i 'http://localhost:8080/pullRequest/stats'
+```
+
+## Стек
+- Язык: Go 1.25
+- База данных: PostgreSQL 17 
+- API и роутинг: `chi` v5
+- Работа с БД: `pgx/v5` (`pgxpool`), миграции — `golang-migrate`
+- Контейнеризация: Docker, Docker Compose
+- Тестирование: стандартная библиотека (`go test`) 
+- Конфигурация: `cleanenv`
+- Логирование: `log/slog` 
+- Сборка/запуск: `Makefile`, `docker compose`
 
 ## Архитектура
 
@@ -103,50 +158,6 @@ make compose-up # развернуть докер-контейнеры
 - После `MERGED` менять список ревьюверов нельзя
 - Если доступных кандидатов меньше двух, назначается доступное количество (0/1), `need_more_reviewers=true`
 - Идемпотентный `merge`: повторный вызов возвращает текущее состояние PR
-
-## Эндпоинты
-
-- `POST /team/add` — создать команду с участниками
-- `GET /team/get` — получить команду и её участников
-- `POST /users/setIsActive` — изменить `is_active` пользователя
-- `GET /users/getReview` — получить PR, где пользователь ревьювер
-- `POST /pullRequest/create` — создать PR с автоназначением ревьюверов
-- `POST /pullRequest/merge` — пометить PR как MERGED (идемпотентно)
-- `POST /pullRequest/reassign` — переназначить ревьювера
-- `GET /pullRequest/stats` — статистика назначений ревьюверов (количество PR на каждого ревьювера)
-
-### Примеры использования
-
-```bash
-# Создать команду
-curl -i -X POST http://localhost:8080/team/add -H 'Content-Type: application/json' \
-  -d '{"team_name":"backend","members":[{"user_id":"u1","username":"Zakhar","is_active":true},{"user_id":"u2","username":"Daniil","is_active":true},{"user_id":"u3","username":"Konstantin","is_active":true},{"user_id":"u4","username":"Nikita","is_active":true},{"user_id":"u5","username":"Kirill","is_active":true}]}'
-
-# Получить команду
-curl -i 'http://localhost:8080/team/get?team_name=backend'
-
-# Изменить активность пользователя
-curl -i -X POST http://localhost:8080/users/setIsActive -H 'Content-Type: application/json' \
-  -d '{"user_id":"u1","is_active":false}'
-
-# Создать PR
-curl -i -X POST http://localhost:8080/pullRequest/create -H 'Content-Type: application/json' \
-  -d '{"pull_request_id":"pr-1001","pull_request_name":"Add search","author_id":"u1"}'
-
-# Merge PR
-curl -i -X POST http://localhost:8080/pullRequest/merge -H 'Content-Type: application/json' \
-  -d '{"pull_request_id":"pr-1001"}'
-
-# Переназначить ревьювера
-curl -i -X POST http://localhost:8080/pullRequest/reassign -H 'Content-Type: application/json' \
-  -d '{"pull_request_id":"pr-1001","old_user_id":"u2"}'
-
-# Получить PR ревьювера
-curl -i 'http://localhost:8080/users/getReview?user_id=u2'
-
-# Статистика назначений
-curl -i 'http://localhost:8080/pullRequest/stats'
-```
 
 ## Тестирование
 
